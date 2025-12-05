@@ -61,4 +61,21 @@ public class Driver {
     @Builder.Default
     @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
     private Integer ratingCount = 0;
+    
+    // Image URLs
+    private String profilePhotoUrl;
+    
+    private String licensePhotoUrl;
+    
+    // Bank Details
+    private String bankName;
+    
+    private String branchName;
+    
+    private String accountNumber;
+    
+    private String accountHolderName;
+    
+    // OTP for mobile verification
+    private String mobileOtp;
 }

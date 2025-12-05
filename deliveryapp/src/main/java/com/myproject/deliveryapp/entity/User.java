@@ -42,4 +42,18 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+    
+    // Email verification fields
+    private String verificationCode;
+    
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean isEmailVerified = false;
+    
+    // Phone verification fields
+    private String phoneOtp;
+    
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean isPhoneVerified = false;
 }

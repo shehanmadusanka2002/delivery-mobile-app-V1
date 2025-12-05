@@ -22,4 +22,10 @@ public class DriverRegistrationRequest {
     private Long vehicleType;
     private String licenseNumber;
     private String vehiclePlateNumber;
+    
+    // Bank Details
+    private String bankName;
+    private String branchName;
+    private String accountNumber;
+    private String accountHolderName;
 }

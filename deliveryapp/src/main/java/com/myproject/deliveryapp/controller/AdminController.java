@@ -53,9 +53,16 @@ public class AdminController {
                         .id(driver.getId())
                         .name(driver.getUser().getName())
                         .email(driver.getUser().getEmail())
+                        .phone(driver.getUser().getPhone())
                         .licenseNumber(driver.getLicenseNumber())
                         .vehiclePlateNumber(driver.getVehiclePlateNumber())
                         .vehicleType(driver.getVehicleType() != null ? driver.getVehicleType().getName() : "N/A")
+                        .bankName(driver.getBankName())
+                        .branchName(driver.getBranchName())
+                        .accountNumber(driver.getAccountNumber())
+                        .accountHolderName(driver.getAccountHolderName())
+                        .profilePhotoUrl(driver.getProfilePhotoUrl())
+                        .licensePhotoUrl(driver.getLicensePhotoUrl())
                         .build())
                 .collect(java.util.stream.Collectors.toList());
         
@@ -83,6 +90,17 @@ public class AdminController {
         driverRepository.save(driver);
         
         return ResponseEntity.ok("Driver approved successfully");
+    }
+    
+    @PatchMapping("/drivers/{driverId}/reject")
+    public ResponseEntity<String> rejectDriver(@PathVariable Long driverId) {
+        Driver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> new RuntimeException("Driver not found"));
+        
+        // Delete the driver and associated user account
+        driverRepository.delete(driver);
+        
+        return ResponseEntity.ok("Driver rejected and removed successfully");
     }
     
     @PatchMapping("/drivers/{driverId}/toggle-block")

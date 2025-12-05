@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/vehicle-types/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/ws").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
