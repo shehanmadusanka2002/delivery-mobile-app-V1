@@ -47,16 +47,16 @@ public class DriverEarningsController {
             Driver driver = driverRepository.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Driver not found"));
 
-            DriverProfileDTO profile = new DriverProfileDTO(
-                    driver.getId(),
-                    user.getName(),
-                    user.getEmail(),
-                    user.getPhone(),
-                    driver.getVehiclePlateNumber(),
-                    driver.getVehicleType().getName(),
-                    driver.getAverageRating(),
-                    driver.getRatingCount()
-            );
+            DriverProfileDTO profile = DriverProfileDTO.builder()
+                    .driverId(driver.getId())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .vehicleNo(driver.getVehiclePlateNumber())
+                    .vehicleType(driver.getVehicleType().getName())
+                    .averageRating(driver.getAverageRating())
+                    .ratingCount(driver.getRatingCount())
+                    .build();
 
             return ResponseEntity.ok(profile);
         } catch (Exception e) {

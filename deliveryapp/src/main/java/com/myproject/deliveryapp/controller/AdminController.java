@@ -108,8 +108,14 @@ public class AdminController {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new RuntimeException("Driver not found"));
         
-        // Toggle isAvailable status (blocks/unblocks driver)
-        driver.setIsAvailable(!driver.getIsAvailable());
+        // Toggle isBlocked status (blocks/unblocks driver)
+        driver.setIsBlocked(!driver.getIsBlocked());
+        
+        // If blocking the driver, also set them offline
+        if (driver.getIsBlocked()) {
+            driver.setIsAvailable(false);
+        }
+        
         Driver updatedDriver = driverRepository.save(driver);
         
         return ResponseEntity.ok(updatedDriver);

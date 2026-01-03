@@ -17,7 +17,7 @@ const LoginPage = () => {
     try {
       const response = await axios.post('http://localhost:8080/api/auth/login', {
         email,
-        password
+        password,
       });
 
       const { token, email: userEmail, role } = response.data;
@@ -47,9 +47,9 @@ const LoginPage = () => {
 
       // Redirect based on role
       if (role === 'ADMIN') {
-        navigate('/admin-dashboard');
+        navigate('/admin');
       } else {
-        navigate('/dashboard');
+        navigate('/customer/home');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');

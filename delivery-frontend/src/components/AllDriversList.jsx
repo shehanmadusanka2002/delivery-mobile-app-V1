@@ -109,10 +109,10 @@ const AllDriversList = () => {
                   License Number
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  Account Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Availability
+                  Online Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Action
@@ -135,19 +135,34 @@ const AllDriversList = () => {
                     {driver.licenseNumber || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {driver.isApproved ? (
+                    {driver.isBlocked ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        🔴 Blocked
+                      </span>
+                    ) : driver.isApproved ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Approved
+                        ✅ Active
                       </span>
                     ) : (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                        Pending
+                        ⏳ Pending
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {driver.isAvailable ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        🟢 Online
+                      </span>
+                    ) : (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        ⚫ Offline
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {driver.isApproved ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         Active
                       </span>
                     ) : (
@@ -159,18 +174,20 @@ const AllDriversList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => handleToggleBlock(driver.id)}
-                      disabled={actionLoading === driver.id}
+                      disabled={actionLoading === driver.id || !driver.isApproved}
                       className={`px-4 py-2 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed ${
-                        driver.isAvailable
-                          ? 'bg-red-600 text-white hover:bg-red-700'
-                          : 'bg-green-600 text-white hover:bg-green-700'
+                        driver.isBlocked
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                     >
                       {actionLoading === driver.id
                         ? 'Processing...'
-                        : driver.isAvailable
-                        ? '🔴 Block'
-                        : '🟢 Unblock'}
+                        : !driver.isApproved
+                        ? '⏳ Pending Approval'
+                        : driver.isBlocked
+                        ? '🟢 Unblock Driver'
+                        : '🔴 Block Driver'}
                     </button>
                   </td>
                 </tr>

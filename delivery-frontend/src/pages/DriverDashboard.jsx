@@ -19,7 +19,7 @@ const DriverDashboard = () => {
       }
 
       // Fetch pending orders
-      const pendingResponse = await axios.get(
+      const response = await axios.get(
         'http://localhost:8080/api/orders/pending',
         {
           headers: {
@@ -29,7 +29,7 @@ const DriverDashboard = () => {
       );
 
       // Fetch driver's active orders (ACCEPTED, IN_TRANSIT)
-      const activeResponse = await axios.get(
+      const response = await axios.get(
         'http://localhost:8080/api/orders/my-active-orders',
         {
           headers: {
@@ -66,7 +66,7 @@ const DriverDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:8080/api/orders/${orderId}/accept`,
+        `http://192.168.8.100:8080/api/orders/${orderId}/accept`,
         {},
         {
           headers: {
@@ -93,7 +93,7 @@ const DriverDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.patch(
-        `http://localhost:8080/api/orders/${orderId}/status?status=${newStatus}`,
+        `http://192.168.8.100:8080/api/orders/${orderId}/status?status=${newStatus}`,
         {},
         {
           headers: {

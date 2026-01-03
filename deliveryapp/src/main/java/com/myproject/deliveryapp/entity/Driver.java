@@ -50,6 +50,10 @@ public class Driver {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isApproved = false;
     
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isBlocked = false;
+    
     private Double currentLatitude;
     
     private Double currentLongitude;

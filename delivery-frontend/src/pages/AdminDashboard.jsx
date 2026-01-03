@@ -107,7 +107,7 @@ const AdminDashboard = () => {
     const token = localStorage.getItem('token');
     
     // Include token in SockJS URL as query parameter
-    const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
+    const socket = new SockJS(`http://192.168.8.100:8080/ws?token=${token}`);
     const stompClient = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
@@ -217,7 +217,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(
+      await axios.post(
         `http://localhost:8080/api/admin/drivers/${driverId}/approve`,
         {},
         {

@@ -150,11 +150,11 @@ public class AuthController {
         String licensePhotoUrl = null;
         
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            profilePhotoUrl = fileStorageService.storeFile(profilePhoto);
+            profilePhotoUrl = fileStorageService.storeProfilePhoto(profilePhoto);
         }
         
         if (licensePhoto != null && !licensePhoto.isEmpty()) {
-            licensePhotoUrl = fileStorageService.storeFile(licensePhoto);
+            licensePhotoUrl = fileStorageService.storeLicensePhoto(licensePhoto);
         }
         
         // Create and save Driver entity with image URLs and bank details
@@ -220,8 +220,14 @@ public class AuthController {
                 Driver driver = driverRepository.findByUser(user)
                         .orElseThrow(() -> new RuntimeException("Driver profile not found"));
                 
+                // Check if account is blocked
+                if (driver.getIsBlocked()) {
+                    throw new BadCredentialsException("Your account is blocked. Please contact the admin.");
+                }
+                
+                // Check if account is pending approval (for new registrations)
                 if (!driver.getIsApproved()) {
-                    throw new BadCredentialsException("Account pending approval. Please contact Admin.");
+                    throw new BadCredentialsException("Your account is pending approval. Please wait for admin approval.");
                 }
             }
             

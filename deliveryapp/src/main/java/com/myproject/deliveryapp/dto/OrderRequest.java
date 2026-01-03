@@ -1,7 +1,5 @@
 package com.myproject.deliveryapp.dto;
 
-import java.math.BigDecimal;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -24,4 +22,10 @@ public class OrderRequest {
     
     @NotNull(message = "Distance is required")
     private Double distance;
+    
+    // GPS Coordinates
+    private Double pickupLat;
+    private Double pickupLng;
+    private Double dropLat;
+    private Double dropLng;
 }

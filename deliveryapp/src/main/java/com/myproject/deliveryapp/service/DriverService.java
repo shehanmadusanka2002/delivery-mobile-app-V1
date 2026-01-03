@@ -36,6 +36,16 @@ public class DriverService {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new RuntimeException("Driver not found with id: " + driverId));
         
+        // Check if driver is approved by admin (registration approval)
+        if (!driver.getIsApproved()) {
+            throw new RuntimeException("Cannot go online. Your account is pending approval by admin.");
+        }
+        
+        // Check if driver is blocked by admin
+        if (isAvailable && driver.getIsBlocked()) {
+            throw new RuntimeException("Your account is blocked. Please contact the admin.");
+        }
+        
         driver.setIsAvailable(isAvailable);
         
         return driverRepository.save(driver);

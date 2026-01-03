@@ -1,9 +1,13 @@
 package com.myproject.deliveryapp.controller;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +26,7 @@ import com.myproject.deliveryapp.entity.Order;
 import com.myproject.deliveryapp.entity.User;
 import com.myproject.deliveryapp.entity.VehicleType;
 import com.myproject.deliveryapp.enums.OrderStatus;
+import com.myproject.deliveryapp.enums.UserRole;
 import com.myproject.deliveryapp.repository.DriverRepository;
 import com.myproject.deliveryapp.repository.OrderRepository;
 import com.myproject.deliveryapp.repository.UserRepository;
@@ -29,9 +34,6 @@ import com.myproject.deliveryapp.repository.VehicleTypeRepository;
 import com.myproject.deliveryapp.service.DriverService;
 import com.myproject.deliveryapp.service.EmailService;
 import com.myproject.deliveryapp.service.WalletService;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,8 +50,10 @@ public class OrderController {
     private final EmailService emailService;
     private final WalletService walletService;
     private final VehicleTypeRepository vehicleTypeRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     
     @PostMapping("/orders")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Order> createOrder(@Valid @RequestBody OrderRequest orderRequest) {
         // Get authenticated user from SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -68,15 +72,11 @@ public class OrderController {
                 .add(distance.multiply(vehicleType.getPricePerKm()))
                 .setScale(2, RoundingMode.HALF_UP);
         
-        // Generate random coordinates near Colombo (simulating geocoding)
-        double baseLat = 6.9271;
-        double baseLng = 79.8612;
-        double pickupLat = baseLat + (Math.random() - 0.5) * 0.02; // ±0.01 degrees
-        double pickupLng = baseLng + (Math.random() - 0.5) * 0.02;
-        
-        // For drop location, simulate a different location nearby
-        double dropLat = baseLat + (Math.random() - 0.5) * 0.02;
-        double dropLng = baseLng + (Math.random() - 0.5) * 0.02;
+        // Use coordinates from request if provided, otherwise use default Colombo coordinates
+        double pickupLat = orderRequest.getPickupLat() != null ? orderRequest.getPickupLat() : 6.9271;
+        double pickupLng = orderRequest.getPickupLng() != null ? orderRequest.getPickupLng() : 79.8612;
+        double dropLat = orderRequest.getDropLat() != null ? orderRequest.getDropLat() : 6.9271;
+        double dropLng = orderRequest.getDropLng() != null ? orderRequest.getDropLng() : 79.8612;
         
         // Create and save order
         Order order = Order.builder()
@@ -84,6 +84,7 @@ public class OrderController {
                 .vehicleType(vehicleType)
                 .status(OrderStatus.PENDING)
                 .pickupLocation(orderRequest.getPickupLocation())
+                .dropLocation(orderRequest.getDropLocation())
                 .pickupLat(pickupLat)
                 .pickupLng(pickupLng)
                 .dropLat(dropLat)
@@ -97,6 +98,7 @@ public class OrderController {
     }
     
     @GetMapping("/orders/my-orders")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'DRIVER')")
     public ResponseEntity<List<Order>> getMyOrders() {
         // Get authenticated user from SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -110,13 +112,70 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
     
+    @PostMapping("/orders/{orderId}/cancel")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Order> cancelOrder(@PathVariable Long orderId) {
+        // Get authenticated user from SecurityContext
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        
+        User customer = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Find the order
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Verify this order belongs to the customer
+        if (!order.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("You are not authorized to cancel this order");
+        }
+        
+        // Only allow cancellation if order is still PENDING (no driver assigned yet)
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new RuntimeException("Cannot cancel order. Order has already been accepted by a driver.");
+        }
+        
+        // Update order status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        Order savedOrder = orderRepository.save(order);
+        
+        return ResponseEntity.ok(savedOrder);
+    }
+    
+    @GetMapping("/orders/{id}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'DRIVER', 'ADMIN')")
+    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Verify the user has access to this order
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Check if user is customer, assigned driver, or admin
+        boolean hasAccess = order.getCustomer().getId().equals(user.getId()) ||
+                           (order.getDriver() != null && order.getDriver().getUser().getId().equals(user.getId())) ||
+                           user.getRole() == UserRole.ADMIN;
+        
+        if (!hasAccess) {
+            throw new RuntimeException("Access denied to this order");
+        }
+        
+        return ResponseEntity.ok(order);
+    }
+    
     @GetMapping("/orders/pending")
+    @PreAuthorize("hasRole('DRIVER')")
     public ResponseEntity<List<Order>> getPendingOrders() {
         List<Order> pendingOrders = orderRepository.findByStatusOrderByCreatedAtDesc(OrderStatus.PENDING);
         return ResponseEntity.ok(pendingOrders);
     }
     
     @GetMapping("/orders/my-active-orders")
+    @PreAuthorize("hasRole('DRIVER')")
     public ResponseEntity<List<Order>> getMyActiveOrders() {
         // Get authenticated user from SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -145,6 +204,7 @@ public class OrderController {
     }
     
     @PutMapping("/orders/{orderId}/accept")
+    @PreAuthorize("hasRole('DRIVER')")
     public ResponseEntity<Order> acceptOrder(@PathVariable Long orderId) {
         // Get authenticated user from SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -180,7 +240,48 @@ public class OrderController {
         driverRepository.save(driver);
         Order savedOrder = orderRepository.save(order);
         
+        // Send WebSocket notification to customer
+        try {
+            messagingTemplate.convertAndSend(
+                "/topic/order/" + savedOrder.getId(),
+                new OrderStatusUpdate(
+                    savedOrder.getId(),
+                    "ACCEPTED",
+                    driver.getUser().getName(),
+                    driver.getVehicleType().getName(),
+                    driver.getVehiclePlateNumber(),
+                    driver.getCurrentLatitude(),
+                    driver.getCurrentLongitude()
+                )
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to send WebSocket notification: " + e.getMessage());
+        }
+        
         return ResponseEntity.ok(savedOrder);
+    }
+    
+    // Helper class for WebSocket messages
+    private static class OrderStatusUpdate {
+        public Long orderId;
+        public String status;
+        public String driverName;
+        public String vehicleType;
+        public String vehicleNumber;
+        public Double driverLat;
+        public Double driverLng;
+        
+        public OrderStatusUpdate(Long orderId, String status, String driverName, 
+                                String vehicleType, String vehicleNumber,
+                                Double driverLat, Double driverLng) {
+            this.orderId = orderId;
+            this.status = status;
+            this.driverName = driverName;
+            this.vehicleType = vehicleType;
+            this.vehicleNumber = vehicleNumber;
+            this.driverLat = driverLat;
+            this.driverLng = driverLng;
+        }
     }
     
     @PatchMapping("/orders/{orderId}/status")

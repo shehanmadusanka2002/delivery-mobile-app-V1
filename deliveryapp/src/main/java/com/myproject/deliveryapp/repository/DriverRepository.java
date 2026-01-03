@@ -16,6 +16,8 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     
     Optional<Driver> findByUser(User user);
     
+    Optional<Driver> findByUserId(Long userId);
+    
     List<Driver> findByIsApproved(Boolean isApproved);
     
     Long countByIsApproved(Boolean isApproved);
@@ -35,4 +37,7 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     List<Driver> findNearestDrivers(@Param("lat") Double lat, 
                                     @Param("lng") Double lng, 
                                     @Param("radius") Double radius);
+
+
+
 }
